@@ -82,6 +82,7 @@ const Store = {
     if (!this.data.pet) this.data.pet = { name: '', level: 1, exp: 0, hunger: 80, happiness: 80, health: 100, lastUpdate: null };
     if (!this.data.petInventory) this.data.petInventory = {};
     if (!this.data.petActionLog) this.data.petActionLog = [];
+    if (!this.data.books) this.data.books = [];
     this.updatePetDecay();
   },
 
@@ -100,6 +101,7 @@ const Store = {
       pet: { name: '', level: 1, exp: 0, hunger: 80, happiness: 80, health: 100, lastUpdate: new Date().toISOString() },
       petInventory: {},
       petActionLog: [],
+      books: [],
     };
   },
 
@@ -138,6 +140,27 @@ const Store = {
       .filter(s => s.date.startsWith(today))
       .reduce((sum, s) => sum + s.duration, 0);
   },
+
+  // --- 书库 ---
+  addBook(title, text) {
+    const book = {
+      id: 'book-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      title: title || '未命名书目',
+      text: text,
+      charCount: text.replace(/[\s\p{P}\p{S}]/gu, '').length,
+      createdAt: new Date().toISOString(),
+    };
+    this.data.books.unshift(book);
+    this.save();
+    return book;
+  },
+
+  deleteBook(id) {
+    this.data.books = this.data.books.filter(b => b.id !== id);
+    this.save();
+  },
+
+  getBooks() { return this.data.books || []; },
 
   // --- 作业 ---
   addHomework(hw) {
@@ -799,7 +822,7 @@ const UI = {
     const tab = document.querySelector(`.tab[data-tab="${viewName}"]`);
     if (tab) tab.classList.add('active');
     if (viewName === 'dashboard') { this.renderDashboard(); }
-    if (viewName === 'practice') { this.renderStats(); this.renderReadingGradeRules(); }
+    if (viewName === 'practice') { this.renderStats(); this.renderReadingGradeRules(); this.renderBookLibrary(); }
     if (viewName === 'homework') { this.renderHwGradeRules(); this.renderHomework(); }
     if (viewName === 'pet') { Store.updatePetDecay(); this.renderPet(); }
     if (viewName === 'rewards') { this.renderRewards(); }
@@ -888,10 +911,118 @@ const UI = {
     this.startReading();
   },
 
+  // ======== 书库模块 ========
+  renderBookLibrary() {
+    const wrap = document.getElementById('bookLibrary');
+    if (!wrap) return;
+    const books = Store.getBooks();
+    if (!books.length) {
+      wrap.innerHTML = '<p class="book-empty">书库还是空的，点「➕ 添加书目」录入孩子的书吧（带拼音也不怕，不用拍照）。</p>';
+      return;
+    }
+    wrap.innerHTML = books.map(b => {
+      const d = (b.createdAt || '').slice(0, 10);
+      return `<div class="book-card" onclick="UI.selectBook('${b.id}')">
+        <div class="book-card-main">
+          <div class="book-card-title">${esc(b.title)}</div>
+          <div class="book-card-meta">${b.charCount}字 · ${d}</div>
+        </div>
+        <button class="book-del" title="删除" onclick="event.stopPropagation(); UI.deleteBook('${b.id}')">🗑</button>
+      </div>`;
+    }).join('');
+  },
+
+  toggleAddBook() {
+    const f = document.getElementById('addBookForm');
+    if (!f) return;
+    f.style.display = (f.style.display === 'none' || !f.style.display) ? 'block' : 'none';
+  },
+
+  saveNewBook() {
+    const title = document.getElementById('newBookTitle').value.trim();
+    const text = document.getElementById('newBookText').value.trim();
+    if (!text) { alert('请先粘贴或输入课文内容！'); return; }
+    Store.addBook(title, text);
+    document.getElementById('newBookTitle').value = '';
+    document.getElementById('newBookText').value = '';
+    document.getElementById('addBookForm').style.display = 'none';
+    this.renderBookLibrary();
+    alert('已存入书库，孩子以后直接选这本书朗读即可 📚');
+  },
+
+  deleteBook(id) {
+    if (!confirm('确定删除这本书目吗？')) return;
+    Store.deleteBook(id);
+    this.renderBookLibrary();
+  },
+
+  selectBook(id) {
+    const book = Store.getBooks().find(b => b.id === id);
+    if (!book) return;
+    this.currentText = book.text;
+    this.currentTitle = book.title;
+    this.startReading();
+  },
+
+  // ======== 实时伴读高亮 ========
+  setupCompanion() {
+    const display = document.getElementById('readingTextDisplay');
+    const raw = this.currentText || '';
+    let normIdx = 0;
+    let html = '';
+    for (const ch of raw) {
+      if (ch === '\n') { html += '<br>'; continue; }
+      if (/[\s\p{P}\p{S}]/u.test(ch)) {
+        html += `<span class="char punc">${esc(ch)}</span>`;
+      } else {
+        html += `<span class="char" data-i="${normIdx}">${esc(ch)}</span>`;
+        normIdx++;
+      }
+    }
+    this.normLen = normIdx;
+    this.readState = new Array(normIdx).fill(false);
+    this.lastNextIdx = -1;
+    display.innerHTML = html;
+    const bar = document.getElementById('companionBar');
+    if (bar) bar.style.display = 'flex';
+    this.updateCompanion('');
+  },
+
+  updateCompanion(recognized) {
+    if (!this.readState) return;
+    const ops = Diff.compute(this.currentText, recognized || '');
+    let oi = 0;
+    const newState = new Array(this.normLen).fill(false);
+    for (const op of ops) {
+      if (op.type === 'match') { if (oi < this.normLen) newState[oi] = true; oi++; }
+      else if (op.type === 'delete') { oi++; }
+    }
+    this.readState = newState;
+    const display = document.getElementById('readingTextDisplay');
+    const spans = display.querySelectorAll('.char[data-i]');
+    spans.forEach(sp => {
+      const i = +sp.dataset.i;
+      sp.classList.toggle('read', !!this.readState[i]);
+      sp.classList.remove('next');
+    });
+    const nextSpan = display.querySelector('.char[data-i]:not(.read)');
+    if (nextSpan) nextSpan.classList.add('next');
+    const readCount = this.readState.filter(Boolean).length;
+    const ct = document.getElementById('companionText');
+    const cf = document.getElementById('companionFill');
+    if (ct) ct.textContent = `已读 ${readCount} / ${this.normLen} 字`;
+    if (cf) cf.style.width = (this.normLen ? Math.round(readCount / this.normLen * 100) : 0) + '%';
+    const nextIdx = nextSpan ? +nextSpan.dataset.i : -1;
+    if (nextSpan && nextIdx !== this.lastNextIdx) {
+      nextSpan.scrollIntoView({ block: 'center' });
+      this.lastNextIdx = nextIdx;
+    }
+  },
+
   async startReading() {
     this.goToStep('read');
     document.getElementById('readingTitleDisplay').textContent = this.currentTitle;
-    document.getElementById('readingTextDisplay').textContent = this.currentText;
+    this.setupCompanion();
     document.getElementById('recognitionLive').innerHTML = '<span class="recognition-placeholder">朗读的声音会显示在这里...</span>';
     document.getElementById('audioPlayerSection').style.display = 'none';
     const goalFill = document.getElementById('readingGoalFill');
@@ -905,6 +1036,7 @@ const UI = {
       (result) => {
         const live = document.getElementById('recognitionLive');
         if (result) live.innerHTML = `<span style="color:var(--text)">${esc(result)}</span>`;
+        if (result) this.updateCompanion(result);
       },
       null
     );
