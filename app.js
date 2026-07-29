@@ -762,34 +762,12 @@ const UI = {
         if (c) c.addEventListener('click', () => { iosTip.style.display = 'none'; });
       }
     }
-    // 已以 APP 形式运行时，隐藏首页安装引导卡片
-    if (isStandalone) {
-      const ihc = document.getElementById('installHelpCard');
-      if (ihc) ihc.style.display = 'none';
-    }
 
-    // 捕获浏览器的"可安装"事件，弹出添加到主屏幕引导条
+    // 捕获浏览器的"可安装"事件（如日后需要真 APP 安装可在此扩展）
     window.addEventListener('beforeinstallprompt', (e) => {
       if (isStandalone) return;
       e.preventDefault();
-      AppState.deferredPrompt = e;
-      const bar = document.getElementById('installBar');
-      if (bar) bar.style.display = 'flex';
-      const btn = document.getElementById('installBtn');
-      if (btn) btn.addEventListener('click', async () => {
-        if (AppState.deferredPrompt) {
-          AppState.deferredPrompt.prompt();
-          await AppState.deferredPrompt.userChoice;
-          AppState.deferredPrompt = null;
-        }
-        bar.style.display = 'none';
-      });
-      const close = document.getElementById('installClose');
-      if (close) close.addEventListener('click', () => { bar.style.display = 'none'; });
-    });
-    window.addEventListener('appinstalled', () => {
-      const bar = document.getElementById('installBar');
-      if (bar) bar.style.display = 'none';
+      AppState.deferredPrompt = e; // 已捕获安装事件，如需真 APP 安装引导可在此扩展
     });
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => this.navigate(tab.dataset.tab));
@@ -812,25 +790,7 @@ const UI = {
     photoInput.addEventListener('change', (e) => this.handlePhotoUpload(e));
   },
 
-  showInstallHelp() {
-    // 若浏览器已提供原生安装入口，直接触发
-    if (AppState.deferredPrompt) {
-      try { AppState.deferredPrompt.prompt(); } catch (e) {}
-      AppState.deferredPrompt = null;
-      const bar = document.getElementById('installBar');
-      if (bar) bar.style.display = 'none';
-      return;
-    }
-    let msg;
-    if (AppState.isIOS && !AppState.isSafari) {
-      msg = '🍎 iPhone 上只有「Safari 浏览器」能把网页装成 APP。\n\n请这样操作：\n1. 复制本页网址\n2. 打开 Safari 粘贴并打开\n3. 点底部「分享」⬆️ →「添加到主屏幕」\n\n（Edge / Chrome 在 iPhone 上只能加书签，无法安装成 APP）';
-    } else if (AppState.isIOS) {
-      msg = '🍎 安装方法：\n点 Safari 底部「分享」⬆️ →「添加到主屏幕」即可。';
-    } else {
-      msg = '🤖 华为 / 安卓手机安装说明（重要）：\n\n实测 Edge、华为浏览器“添加到主屏幕”都会变成带浏览器栏的快捷方式，不是独立 APP。\n\n✅ 唯一保证成功的方法：生成 APK 安装包。\n  在首页点绿色按钮「打开 PWABuilder 生成安卓安装包」，下载 .apk 装到手机即可，这是真正的 APP。\n\n（也可试 Chrome 的「安装应用」，但华为机型不一定成功。）';
-    }
-    alert(msg);
-  },
+  // 安装引导已移除（用户选择用浏览器快捷方式，无需安装提示）
 
   navigate(viewName) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
