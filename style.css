@@ -83,6 +83,13 @@ body {
 .install-help-text span { font-size: 12px; color: #6b6b8a; margin-top: 2px; }
 .install-help-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; border-radius: 20px; padding: 9px 18px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 
+/* 华为手机安装方案卡片 */
+.install-apk-card { background: linear-gradient(135deg, #fff, #eefcf3); border: 2px dashed #7fd6a0; border-radius: 16px; padding: 12px 14px; margin: 6px 0 2px; }
+.install-apk-card strong { font-size: 14px; color: #2e7d52; }
+.install-steps { margin: 6px 0 8px 18px; padding: 0; }
+.install-steps li { font-size: 12.5px; color: #4a4a5e; line-height: 1.5; margin-bottom: 6px; }
+.install-apk-link { display: inline-block; background: linear-gradient(135deg, #2e9e6b, #1f8a5b); color: #fff; text-decoration: none; border-radius: 20px; padding: 9px 16px; font-size: 13px; font-weight: 700; }
+
 /* --- 导航栏 --- */
 .nav-bar {
   background: var(--primary);
