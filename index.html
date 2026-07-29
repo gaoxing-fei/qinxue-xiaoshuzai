@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#667eea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="勤学小书仔">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>勤学小书仔</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 浏览器兼容性提示 -->
+<div id="browserWarning" class="browser-warning" style="display:none;">
+  <div class="warning-content">
+    <span class="warning-icon">⚠️</span>
+    <div>
+      <strong>浏览器不支持语音识别</strong>
+      <p>请使用 Chrome 或 Edge 浏览器打开本应用，以确保语音识别功能正常工作。</p>
+    </div>
+  </div>
+</div>
+
+<!-- 微信内打开提示 -->
+<div id="wechatTip" class="wechat-tip" style="display:none;">
+  <div class="wechat-tip-content">
+    <span class="wechat-tip-icon">📲</span>
+    <div class="wechat-tip-text">
+      <strong>请点右上角 ⋯ 用浏览器打开</strong>
+      <p>微信里不能直接把网页装成 APP。点右上角「⋯」→「在浏览器打开」（iPhone 选「在 Safari 中打开」），就能把本应用添加到手机桌面，像普通 APP 一样使用，语音朗读也才正常。</p>
+    </div>
+    <button id="wechatTipClose" class="wechat-tip-close">知道了</button>
+  </div>
+</div>
+
+<!-- 添加到主屏幕引导条 -->
+<div id="installBar" class="install-bar" style="display:none;">
+  <span class="install-bar-icon">➕</span>
+  <div class="install-bar-text">
+    <strong>添加到手机桌面</strong>
+    <span>点此把它变成桌面的 APP 图标，打开即用</span>
+  </div>
+  <button id="installBtn" class="install-bar-btn">安装</button>
+  <button id="installClose" class="install-bar-close">✕</button>
+</div>
+
+<!-- 顶部导航栏 -->
+<nav class="nav-bar">
+  <div class="nav-container">
+    <div class="logo">
+      <span class="logo-icon">📖</span>
+      <span class="logo-text">勤学小书仔</span>
+    </div>
+    <div class="nav-right">
+      <div class="child-name-display" id="navChildName"></div>
+      <div class="nav-points-group">
+        <div class="nav-points nav-points-reward" title="奖励积分（兑换奖励用）">
+          <span class="star-icon">⭐</span>
+          <span id="navPoints">0</span>
+        </div>
+        <div class="nav-points nav-points-pet" title="宠物积分（养育宠物用）">
+          <span class="star-icon">🐾</span>
+          <span id="navPetPoints">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Tab 导航栏 -->
+<div class="tab-bar">
+  <button class="tab active" data-tab="dashboard">🏠 首页</button>
+  <button class="tab" data-tab="practice">🎤 朗读</button>
+  <button class="tab" data-tab="homework">📝 作业</button>
+  <button class="tab" data-tab="pet">🐾 宠物</button>
+  <button class="tab" data-tab="rewards">🎁 奖励</button>
+</div>
+
+<!-- 五彩纸屑容器 -->
+<div class="confetti-container" id="confettiContainer"></div>
+
+<!-- 主内容区 -->
+<main class="main-content">
+
+  <!-- ==================== 首页 ==================== -->
+  <div id="view-dashboard" class="view active">
+    <div class="hero-card">
+      <h1 id="greeting">你好，小朋友！</h1>
+      <p>每天朗读25分钟，完成作业，养育宠物！</p>
+      <div class="hero-actions">
+        <button class="btn-primary btn-large btn-pulse" onclick="UI.navigate('practice')">🎤 开始朗读</button>
+        <button class="btn-secondary btn-large" onclick="UI.navigate('homework')">📝 去做作业</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-value" id="dashTotalPoints">0</div>
+        <div class="stat-label">奖励积分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🐾</div>
+        <div class="stat-value" id="dashPetPoints">0</div>
+        <div class="stat-label">宠物积分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📖</div>
+        <div class="stat-value" id="dashTotalSessions">0</div>
+        <div class="stat-label">朗读次数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-value" id="dashHwDone">0</div>
+        <div class="stat-label">作业完成</div>
+      </div>
+    </div>
+
+    <!-- 今日阅读进度条 -->
+    <div class="dashboard-section">
+      <h2 class="section-title">📅 今日阅读进度</h2>
+      <div class="daily-progress">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="todayProgressFill" style="width:0%"></div>
+          <div class="progress-bar-text" id="todayProgressText">0 / 25 分钟</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 宠物状态快览 -->
+    <div class="dashboard-section pet-mini-card" id="petMiniCard" onclick="UI.navigate('pet')">
+      <div class="pet-mini-emoji" id="petMiniEmoji">🥚</div>
+      <div class="pet-mini-info">
+        <div class="pet-mini-name" id="petMiniName">我的宠物</div>
+        <div class="pet-mini-stats">
+          <span>🍖 <span id="petMiniHunger">80</span></span>
+          <span>😊 <span id="petMiniHappy">80</span></span>
+          <span>💚 <span id="petMiniHealth">100</span></span>
+        </div>
+      </div>
+      <div class="pet-mini-arrow">›</div>
+    </div>
+
+    <div class="dashboard-section">
+      <h2 class="section-title">📋 最近活动</h2>
+      <div id="dashRecentSessions">
+        <p class="empty-hint">还没有记录，开始朗读或做作业吧！</p>
+      </div>
+    </div>
+
+    <!-- 录音文件管理 -->
+    <div class="dashboard-section">
+      <h2 class="section-title">🎵 录音文件（钉钉打卡用）</h2>
+      <p class="section-subhint">下载朗读录音，上传到钉钉完成每日阅读打卡</p>
+      <div id="audioFilesList">
+        <p class="empty-hint">还没有录音文件</p>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+      <h2 class="section-title">⚙️ 设置</h2>
+      <div class="setting-item">
+        <label>小朋友的名字：</label>
+        <input type="text" id="childNameInput" placeholder="输入名字" maxlength="10">
+        <button class="btn-small" onclick="UI.saveChildName()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 朗读练习 + 朗读统计 ==================== -->
+  <div id="view-practice" class="view">
+
+    <!-- Step 1: 拍照/上传识别阅读内容 -->
+    <div id="step-select" class="practice-step active">
+      <h2 class="step-title">第一步：拍照上传阅读内容</h2>
+      <p class="step-hint">💡 拍一张今天要读的书的照片，系统会自动识别文字内容</p>
+
+      <!-- 拍照上传区域 -->
+      <div class="upload-section">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
+          <div class="upload-placeholder" id="uploadPlaceholder">
+            <div class="upload-icon">📷</div>
+            <p class="upload-text">点击拍照或上传图片</p>
+            <p class="upload-hint">拍摄书本页面，自动识别文字</p>
+          </div>
+          <div class="upload-preview" id="uploadPreview" style="display:none;">
+            <img id="previewImg" src="" alt="预览">
+            <button class="btn-reupload" onclick="UI.resetUpload()">↻ 重新拍照</button>
+          </div>
+        </div>
+        <button class="btn-primary btn-large" id="ocrBtn" onclick="UI.startOCR()" style="display:none;">🔍 识别文字</button>
+        <div class="ocr-progress" id="ocrProgress" style="display:none;">
+          <div class="ocr-spinner"></div>
+          <span id="ocrProgressText">正在识别文字...</span>
+          <div class="ocr-progress-bar">
+            <div class="ocr-progress-fill" id="ocrProgressFill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OCR结果编辑 -->
+      <div class="ocr-result-section" id="ocrResultSection" style="display:none;">
+        <label class="input-label">✏️ 请核对识别结果（如有错误请修改）：</label>
+        <textarea id="ocrResultEditor" rows="6" placeholder="识别到的文字会显示在这里..."></textarea>
+        <input type="text" id="textTitleInput" placeholder="标题（如：第3页 / 小猪唏哩呼噜）" maxlength="50">
+        <button class="btn-primary btn-large" onclick="UI.confirmOCRText()">确认使用 →</button>
+      </div>
+
+      <div class="divider"><span>或者手动输入</span></div>
+
+      <div class="input-section">
+        <label class="input-label">📝 手动输入课文内容</label>
+        <textarea id="customText" placeholder="将朗读的课文内容输入到这里..." rows="5"></textarea>
+        <input type="text" id="textTitle" placeholder="标题（可选）" maxlength="50">
+        <button class="btn-secondary" onclick="UI.useCustomText()">使用手动输入</button>
+      </div>
+    </div>
+
+    <!-- Step 2: 朗读中（含25分钟计时） -->
+    <div id="step-read" class="practice-step">
+      <div class="reading-header">
+        <div class="reading-info">
+          <div class="reading-timer-box">
+            <span class="reading-timer-label">朗读计时</span>
+            <span class="reading-timer" id="readingTimer">00:00</span>
+          </div>
+          <span class="reading-title" id="readingTitleDisplay"></span>
+        </div>
+        <button class="btn-stop" id="stopReadingBtn" onclick="UI.stopReading()">■ 结束朗读</button>
+      </div>
+
+      <!-- 阅读时间目标进度 -->
+      <div class="reading-goal-card">
+        <div class="reading-goal-header">
+          <span>🕐 今日阅读目标：25分钟</span>
+          <span id="readingGoalPercent">0%</span>
+        </div>
+        <div class="reading-goal-bar">
+          <div class="reading-goal-fill" id="readingGoalFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="reading-text-display" id="readingTextDisplay"></div>
+
+      <!-- 录音状态指示 -->
+      <div class="recording-banner" id="recordingBanner">
+        <span class="recording-dot"></span>
+        <span>录音中... 朗读结束后可下载音频用于钉钉打卡</span>
+      </div>
+
+      <div class="recognition-panel">
+        <div class="mic-indicator-wrap">
+          <div class="mic-indicator" id="micIndicator">
+            <div class="mic-pulse"></div>
+            <span class="mic-icon">🎙️</span>
+          </div>
+          <span class="mic-status" id="micStatus">正在聆听...</span>
+        </div>
+        <div class="recognition-live" id="recognitionLive">
+          <span class="recognition-placeholder">朗读的声音会显示在这里...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: 检查识别结果 -->
+    <div id="step-review" class="practice-step">
+      <h2 class="step-title">第二步：检查朗读内容</h2>
+      <p class="step-hint">💡 语音识别可能不完美，请核对并修改下面识别到的文字，确保和实际朗读一致：</p>
+      <textarea id="recognizedTextEditor" rows="6" placeholder="识别到的文字..."></textarea>
+      <div class="step-buttons">
+        <button class="btn-secondary" onclick="UI.goToStep('read')">↩ 重新朗读</button>
+        <button class="btn-primary" onclick="UI.runComparison()">对比分析 →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: 结果展示 -->
+    <div id="step-results" class="practice-step">
+      <div class="results-header-bar">
+        <h2 class="step-title">朗读结果</h2>
+        <div class="grade-display" id="gradeDisplay"></div>
+      </div>
+
+      <div class="results-summary">
+        <div class="summary-card success">
+          <div class="summary-value" id="resultAccuracy">0%</div>
+          <div class="summary-label">准确率</div>
+        </div>
+        <div class="summary-card danger">
+          <div class="summary-value" id="resultErrors">0</div>
+          <div class="summary-label">错误总数</div>
+        </div>
+        <div class="summary-card info">
+          <div class="summary-value" id="resultDuration">0'</div>
+          <div class="summary-label">朗读用时</div>
+        </div>
+        <div class="summary-card warning">
+          <div class="summary-value" id="resultPoints">+0</div>
+          <div class="summary-label">获得积分</div>
+        </div>
+      </div>
+
+      <!-- 错误分类统计 -->
+      <div class="error-breakdown" id="errorBreakdown"></div>
+
+      <!-- 图例 -->
+      <div class="error-legend">
+        <div class="legend-item"><span class="legend-dot correct"></span>正确</div>
+        <div class="legend-item"><span class="legend-dot wrong"></span>读错字</div>
+        <div class="legend-item"><span class="legend-dot skip"></span>漏字</div>
+        <div class="legend-item"><span class="legend-dot extra"></span>添字</div>
+        <div class="legend-item"><span class="legend-dot lineskip"></span>串行</div>
+      </div>
+
+      <!-- 文本对比 -->
+      <div class="text-comparison" id="textComparison"></div>
+
+      <!-- 音频播放与下载 -->
+      <div class="audio-player-section" id="audioPlayerSection" style="display:none;">
+        <h3 class="section-title">🎵 朗读录音</h3>
+        <div class="audio-player-wrap">
+          <audio id="audioPlayback" controls></audio>
+          <div class="audio-info">
+            <span id="audioDuration">时长: 0"</span>
+            <span id="audioSize">大小: 0KB</span>
+          </div>
+        </div>
+        <button class="btn-primary btn-download" id="downloadAudioBtn" onclick="UI.downloadAudio()">
+          📥 下载录音（用于钉钉打卡）
+        </button>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="results-actions">
+        <button class="btn-secondary" onclick="UI.goToStep('select')">↩ 重新选文</button>
+        <button class="btn-secondary" id="listenCorrectBtn" onclick="UI.listenCorrect()">🔊 听正确读音</button>
+        <button class="btn-primary" id="practiceWrongBtn" onclick="UI.startWrongPractice()">✏️ 练习错字</button>
+        <button class="btn-primary btn-save" id="saveResultsBtn" onclick="UI.saveResults()">💾 保存成绩</button>
+      </div>
+    </div>
+
+    <!-- Step 5: 错字练习 -->
+    <div id="step-practice-wrong" class="practice-step">
+      <h2 class="step-title">✏️ 错字练习</h2>
+      <p class="step-hint">把刚才读错的字再练一练！先听正确读音，再大声跟读。</p>
+      <div id="wrongCharsList"></div>
+      <div class="step-buttons">
+        <button class="btn-secondary" onclick="UI.goToStep('results')">↩ 返回结果</button>
+        <button class="btn-primary" onclick="UI.finishWrongPractice()">完成练习 ✓</button>
+      </div>
+    </div>
+
+    <!-- ======== 朗读统计（从奖励页移入） ======== -->
+    <div class="reading-stats-section" id="readingStatsSection">
+      <div class="dashboard-section">
+        <h2 class="section-title">📈 朗读统计</h2>
+        <div class="stats-grid" style="margin-bottom:16px;">
+          <div class="stat-card">
+            <div class="stat-icon">📖</div>
+            <div class="stat-value" id="statsTotalSessions">0</div>
+            <div class="stat-label">朗读次数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⏱</div>
+            <div class="stat-value" id="statsTotalTime">0'</div>
+            <div class="stat-label">总时长</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-value" id="statsAvgAccuracy">0%</div>
+            <div class="stat-label">平均准确率</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🏆</div>
+            <div class="stat-value" id="statsBestGrade">-</div>
+            <div class="stat-label">最佳等级</div>
+          </div>
+        </div>
+
+        <h4 class="subsection-title">准确率趋势（最近10次）</h4>
+        <div class="bar-chart" id="accuracyChart">
+          <p class="empty-hint">暂无数据</p>
+        </div>
+
+        <h4 class="subsection-title">错误类型分布</h4>
+        <div class="error-type-chart" id="errorTypeChart">
+          <p class="empty-hint">暂无数据</p>
+        </div>
+
+        <h4 class="subsection-title">等级分布</h4>
+        <div class="grade-distribution" id="gradeDistribution">
+          <p class="empty-hint">暂无数据</p>
+        </div>
+      </div>
+
+      <!-- 朗读分级评价规则 -->
+      <div class="dashboard-section">
+        <h3 class="section-title">📋 朗读分级评价</h3>
+        <div class="grade-rules" id="readingGradeRules"></div>
+        <div class="time-bonus-rules">
+          <div class="time-rule">
+            <span class="time-icon">✅</span>
+            <span>达到25分钟目标，额外 <strong>+10 积分</strong></span>
+          </div>
+          <div class="time-rule">
+            <span class="time-icon">🔥</span>
+            <span>连续7天达标，额外 <strong>+30 积分</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 朗读历史 -->
+      <div class="dashboard-section">
+        <h3 class="section-title">📜 朗读历史</h3>
+        <div id="historyList">
+          <p class="empty-hint">暂无朗读记录</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== 作业打卡 ==================== -->
+  <div id="view-homework" class="view">
+    <div class="hw-page-header">
+      <h2 class="page-title">📝 作业打卡</h2>
+      <button class="btn-primary btn-small hw-add-btn" onclick="UI.toggleHwAddForm()">➕ 添加作业</button>
+    </div>
+
+    <!-- 类型筛选（只有日常/假期，没有全部） -->
+    <div class="hw-type-bar">
+      <button class="hw-type-btn active" data-type="daily" onclick="UI.filterHomework('daily', this)">📚 日常作业</button>
+      <button class="hw-type-btn" data-type="vacation" onclick="UI.filterHomework('vacation', this)">🏖️ 假期作业</button>
+    </div>
+
+    <!-- 添加作业表单（折叠式） -->
+    <div class="hw-add-form-wrap" id="hwAddFormWrap" style="display:none;">
+      <div class="dashboard-section">
+        <h3 class="section-title">➕ 添加新作业</h3>
+        <div class="hw-add-form">
+          <input type="text" id="hwTitle" placeholder="作业标题（如：数学练习册第5页）" maxlength="50">
+          <div class="hw-form-row">
+            <input type="text" id="hwSubject" placeholder="科目" list="subjectList" maxlength="10">
+            <datalist id="subjectList">
+              <option value="语文"></option>
+              <option value="数学"></option>
+              <option value="英语"></option>
+              <option value="其他"></option>
+            </datalist>
+            <input type="date" id="hwDueDate">
+          </div>
+          <button class="btn-primary" onclick="UI.addHomework()">+ 添加作业</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 左右分栏布局 -->
+    <div class="hw-layout">
+      <!-- 左栏：科目分类 -->
+      <div class="hw-sidebar">
+        <div class="hw-subject-header">📚 科目分类</div>
+        <div class="hw-subject-list" id="hwSubjectList">
+          <div class="hw-subject-item active" data-subject="all" onclick="UI.filterHomeworkSubject('all', this)">
+            <span class="hw-subject-icon">📋</span>
+            <span class="hw-subject-name">全部科目</span>
+            <span class="hw-subject-count" id="hwSubjectCountAll">0</span>
+          </div>
+          <div class="hw-subject-item" data-subject="语文" onclick="UI.filterHomeworkSubject('语文', this)">
+            <span class="hw-subject-icon">📖</span>
+            <span class="hw-subject-name">语文</span>
+            <span class="hw-subject-count" id="hwSubjectCountChinese">0</span>
+          </div>
+          <div class="hw-subject-item" data-subject="数学" onclick="UI.filterHomeworkSubject('数学', this)">
+            <span class="hw-subject-icon">🔢</span>
+            <span class="hw-subject-name">数学</span>
+            <span class="hw-subject-count" id="hwSubjectCountMath">0</span>
+          </div>
+          <div class="hw-subject-item" data-subject="英语" onclick="UI.filterHomeworkSubject('英语', this)">
+            <span class="hw-subject-icon">🔤</span>
+            <span class="hw-subject-name">英语</span>
+            <span class="hw-subject-count" id="hwSubjectCountEnglish">0</span>
+          </div>
+          <div class="hw-subject-item" data-subject="其他" onclick="UI.filterHomeworkSubject('其他', this)">
+            <span class="hw-subject-icon">📦</span>
+            <span class="hw-subject-name">其他</span>
+            <span class="hw-subject-count" id="hwSubjectCountOther">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右栏：作业内容 -->
+      <div class="hw-content">
+        <div class="hw-content-header">
+          <span class="hw-current-filter" id="hwCurrentFilter">📚 日常作业 · 全部科目</span>
+          <span class="hw-count-badge" id="hwCountBadge">0</span>
+        </div>
+        <div id="homeworkList">
+          <p class="empty-hint">还没有作业，点击右上角添加吧！</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 作业质量分级规则（从左栏移出，放在作业内容下方） -->
+    <div class="dashboard-section" style="margin-top:16px;">
+      <h3 class="section-title">📋 作业质量分级</h3>
+      <div class="grade-rules" id="homeworkGradeRules"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 宠物养成 ==================== -->
+  <div id="view-pet" class="view">
+    <h2 class="page-title">🐾 宠物养成</h2>
+
+    <!-- 宠物积分展示 -->
+    <div class="pet-points-display">
+      <div class="pet-points-big">
+        <span class="pet-points-icon">🐾</span>
+        <span class="pet-points-value" id="petPointsDisplay">0</span>
+        <span class="pet-points-label">宠物积分</span>
+      </div>
+      <p class="pet-points-hint">朗读和作业获得的积分同时存入宠物积分池，用于购买宠物物品</p>
+    </div>
+
+    <!-- 宠物展示 -->
+    <div class="pet-display-card">
+      <div class="pet-emoji-big" id="petEmoji">🥚</div>
+      <div class="pet-name-big" id="petName">我的宠物</div>
+      <div class="pet-stage-text" id="petStageText">Lv.1 · 蛋</div>
+
+      <div class="pet-stats">
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon">🍖</span>
+          <span class="pet-stat-label">饱食度</span>
+          <div class="pet-stat-bar">
+            <div class="pet-stat-fill stat-hunger" id="petHungerBar" style="width:80%"></div>
+          </div>
+          <span class="pet-stat-value" id="petHungerValue">80</span>
+        </div>
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon">😊</span>
+          <span class="pet-stat-label">快乐度</span>
+          <div class="pet-stat-bar">
+            <div class="pet-stat-fill stat-happy" id="petHappyBar" style="width:80%"></div>
+          </div>
+          <span class="pet-stat-value" id="petHappyValue">80</span>
+        </div>
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon">💚</span>
+          <span class="pet-stat-label">健康度</span>
+          <div class="pet-stat-bar">
+            <div class="pet-stat-fill stat-health" id="petHealthBar" style="width:100%"></div>
+          </div>
+          <span class="pet-stat-value" id="petHealthValue">100</span>
+        </div>
+        <div class="pet-stat-row">
+          <span class="pet-stat-icon">✨</span>
+          <span class="pet-stat-label">经验值</span>
+          <div class="pet-stat-bar">
+            <div class="pet-stat-fill stat-exp" id="petExpBar" style="width:0%"></div>
+          </div>
+          <span class="pet-stat-value" id="petExpValue">0/100</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 宠物商店 -->
+    <div class="dashboard-section">
+      <h3 class="section-title">🛒 宠物商店</h3>
+      <p class="section-subhint">用积分购买物品，照顾你的小宠物</p>
+      <div class="pet-shop-grid" id="petShopGrid"></div>
+    </div>
+
+    <!-- 背包 -->
+    <div class="dashboard-section">
+      <h3 class="section-title">🎒 我的背包</h3>
+      <div id="petInventory">
+        <p class="empty-hint">背包空空如也，去商店买点东西吧！</p>
+      </div>
+    </div>
+
+    <!-- 养成日志 -->
+    <div class="dashboard-section">
+      <h3 class="section-title">📜 养成日志</h3>
+      <div id="petActionLog">
+        <p class="empty-hint">还没有养成记录</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 奖励中心 ==================== -->
+  <div id="view-rewards" class="view">
+    <h2 class="page-title">🎁 奖励中心</h2>
+
+    <div class="rewards-points-display">
+      <div class="big-points">
+        <span class="big-star">⭐</span>
+        <span class="big-points-value" id="rewardsTotalPoints">0</span>
+        <span class="big-points-label">可用奖励积分</span>
+      </div>
+    </div>
+
+    <!-- 积分兑换商店 -->
+    <div class="dashboard-section">
+      <h3 class="section-title">🎁 积分兑换商店</h3>
+      <div class="add-reward-form">
+        <input type="text" id="newRewardName" placeholder="奖励名称" maxlength="30">
+        <input type="number" id="newRewardCost" placeholder="积分" min="1" max="9999">
+        <button class="btn-primary btn-small" onclick="UI.addReward()">+ 添加</button>
+      </div>
+      <div class="rewards-list" id="rewardsList"></div>
+    </div>
+
+    <!-- 已兑换 -->
+    <div class="dashboard-section">
+      <h3 class="section-title">✅ 已兑换</h3>
+      <div id="redeemedList">
+        <p class="empty-hint">还没有兑换记录</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- 作业详情/批改弹窗 -->
+<div class="modal-overlay" id="hwModal" style="display:none;" onclick="UI.closeHwModal(event)">
+  <div class="modal-content hw-modal-content" id="hwModalContent">
+  </div>
+</div>
+
+<!-- 宠物互动结果弹窗 -->
+<div class="modal-overlay" id="petModal" style="display:none;" onclick="UI.closePetModal(event)">
+  <div class="modal-content pet-modal-content" id="petModalContent">
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="app.js"></script>
+<script>
+  // 注册 Service Worker (PWA 离线支持)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
