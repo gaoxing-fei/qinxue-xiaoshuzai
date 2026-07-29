@@ -1180,6 +1180,101 @@ const UI = {
     else this.navigate('practice');
   },
 
+  // ======== 上传电子书（TXT / EPUB） ========
+  openEbookUpload() {
+    const inp = document.getElementById('ebookInput');
+    if (inp) inp.click();
+  },
+
+  async handleEbookFile(file, inputEl) {
+    if (!file) return;
+    const msg = document.getElementById('ebookMsg');
+    const name = file.name.replace(/\.[^.]+$/, '');
+    const lower = file.name.toLowerCase();
+    this._setEbookMsg(msg, '正在读取《' + name + '》…');
+    try {
+      if (lower.endsWith('.txt')) {
+        const text = await file.text();
+        this._fillFromEbook(name, text, 'upload');
+      } else if (lower.endsWith('.epub')) {
+        await this.ensureJsZip();
+        const buf = await file.arrayBuffer();
+        const text = await this.parseEpub(buf);
+        if (!text || text.trim().length < 10) {
+          this._setEbookMsg(msg, '未能从 EPUB 提取到文字（可能是加密或图片版电子书）。请改用 .txt 格式。');
+          return;
+        }
+        this._fillFromEbook(name, text, 'upload');
+      } else {
+        this._setEbookMsg(msg, '暂不支持该格式（' + file.name + '）。目前支持 .txt 和 .epub，PDF 请先转成 TXT。');
+        return;
+      }
+      this._setEbookMsg(msg, '已导入《' + name + '》（' + (document.getElementById('newBookText').value.length) + ' 字），请核对文字、选好分类后保存。');
+    } catch (e) {
+      this._setEbookMsg(msg, '读取失败：' + ((e && e.message) ? e.message : e));
+    } finally {
+      if (inputEl) inputEl.value = '';
+    }
+  },
+
+  _setEbookMsg(el, t) { if (el) el.textContent = t; },
+
+  _fillFromEbook(name, text, source) {
+    const cleaned = (text || '').replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    document.getElementById('newBookTitle').value = name.slice(0, 50);
+    document.getElementById('newBookText').value = cleaned;
+    this.newBookMeta = { source: source || 'upload' };
+    this.toggleAddBook(true);
+  },
+
+  ensureJsZip() {
+    return new Promise((resolve, reject) => {
+      if (window.JSZip) return resolve();
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+      s.onload = () => window.JSZip ? resolve() : reject(new Error('JSZip 未就绪'));
+      s.onerror = () => reject(new Error('JSZip 加载失败，请检查网络'));
+      document.head.appendChild(s);
+    });
+  },
+
+  async parseEpub(arrayBuffer) {
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    let opfPath = null;
+    const container = zip.file('META-INF/container.xml');
+    if (container) {
+      const xml = await container.async('string');
+      const m = xml.match(/full-path="([^"]+)"/);
+      if (m) opfPath = m[1];
+    }
+    let xhtmlPaths = [];
+    if (opfPath) {
+      const opf = await zip.file(opfPath).async('string');
+      const itemTags = [...opf.matchAll(/<item\b([^>]*)>/g)];
+      const idToHref = {};
+      itemTags.forEach(mt => {
+        const idM = mt[1].match(/id="([^"]+)"/);
+        const hrefM = mt[1].match(/href="([^"]+)"/);
+        if (idM && hrefM) idToHref[idM[1]] = hrefM[1];
+      });
+      const idrefs = [...opf.matchAll(/<itemref[^>]*idref="([^"]+)"/g)].map(x => x[1]);
+      const base = opfPath.includes('/') ? opfPath.slice(0, opfPath.lastIndexOf('/') + 1) : '';
+      xhtmlPaths = idrefs.map(id => idToHref[id]).filter(Boolean).map(h => base + h);
+    }
+    if (!xhtmlPaths.length) {
+      xhtmlPaths = Object.keys(zip.files).filter(p => /\.x?html?$/i.test(p) && !zip.files[p].dir);
+    }
+    let text = '';
+    for (const p of xhtmlPaths) {
+      const f = zip.file(p);
+      if (!f) continue;
+      const content = await f.async('string');
+      const doc = new DOMParser().parseFromString(content, 'text/html');
+      text += (doc.body ? doc.body.textContent : doc.documentElement.textContent) + '\n';
+    }
+    return text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  },
+
   // ======== 实时伴读高亮 ========
   setupCompanion() {
     const display = document.getElementById('readingTextDisplay');
