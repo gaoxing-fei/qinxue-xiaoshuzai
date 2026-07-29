@@ -38,6 +38,18 @@
   </div>
 </div>
 
+<!-- iPhone 非 Safari 浏览器（Edge/Chrome）无法安装提示 -->
+<div id="iosTip" class="wechat-tip" style="display:none;">
+  <div class="wechat-tip-content">
+    <span class="wechat-tip-icon">🍎</span>
+    <div class="wechat-tip-text">
+      <strong>iPhone 请改用 Safari 打开</strong>
+      <p>你当前用的浏览器（如 Edge）在 iPhone 上无法把网页装成 APP，只能加书签。请复制本页网址，用 <b>Safari</b> 打开，再点底部「分享 → 添加到主屏幕」，即可装成真正的 APP。</p>
+    </div>
+    <button id="iosTipClose" class="wechat-tip-close">知道了</button>
+  </div>
+</div>
+
 <!-- 添加到主屏幕引导条 -->
 <div id="installBar" class="install-bar" style="display:none;">
   <span class="install-bar-icon">➕</span>
@@ -96,6 +108,16 @@
         <button class="btn-primary btn-large btn-pulse" onclick="UI.navigate('practice')">🎤 开始朗读</button>
         <button class="btn-secondary btn-large" onclick="UI.navigate('homework')">📝 去做作业</button>
       </div>
+    </div>
+
+    <!-- 安装到桌面引导卡片 -->
+    <div class="install-help-card" id="installHelpCard">
+      <div class="install-help-icon">📲</div>
+      <div class="install-help-text">
+        <strong>想把它装到手机桌面？</strong>
+        <span>点此查看你的手机该怎么安装成 APP（真正全屏图标）</span>
+      </div>
+      <button class="install-help-btn" id="installHelpBtn" onclick="UI.showInstallHelp()">安装</button>
     </div>
 
     <div class="stats-grid">
