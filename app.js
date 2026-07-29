@@ -62,6 +62,17 @@ const PET_SHOP_ITEMS = [
   { id: 'special1', name: '经验药水', icon: '⚗️', cost: 150, type: 'special', effect: { exp: 50 }, desc: '经验+50' },
 ];
 
+// 书库分类标签
+const BOOK_CATEGORIES = [
+  { key: '绘本', icon: '📖' },
+  { key: '童话', icon: '🧚' },
+  { key: '科普', icon: '🔬' },
+  { key: '古诗文', icon: '📜' },
+  { key: '课本', icon: '📚' },
+  { key: '故事', icon: '📖' },
+  { key: '其他', icon: '⭐' },
+];
+
 // ============================================
 // 2. 数据存储 (localStorage)
 // ============================================
@@ -102,6 +113,7 @@ const Store = {
       petInventory: {},
       petActionLog: [],
       books: [],
+      lastBookId: null,
     };
   },
 
@@ -142,13 +154,19 @@ const Store = {
   },
 
   // --- 书库 ---
-  addBook(title, text) {
+  addBook(title, text, opts = {}) {
+    const tags = (opts.tags && opts.tags.length) ? opts.tags : ['其他'];
     const book = {
       id: 'book-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       title: title || '未命名书目',
       text: text,
       charCount: text.replace(/[\s\p{P}\p{S}]/gu, '').length,
       createdAt: new Date().toISOString(),
+      tags: tags,
+      source: opts.source || 'manual',
+      isbn: opts.isbn || null,
+      url: opts.url || null,
+      cover: opts.cover || null,
     };
     this.data.books.unshift(book);
     this.save();
@@ -750,6 +768,13 @@ const UI = {
   hwSelectedGrade: null,
   hwGradingId: null,
 
+  // 书库相关状态
+  newBookTags: new Set(),
+  newBookMeta: null,
+  bookFilterTag: '全部',
+  _qrScanner: null,
+  _qrHandled: false,
+
   init() {
     if (!Speech.isSupported) {
       document.getElementById('browserWarning').style.display = 'block';
@@ -915,37 +940,105 @@ const UI = {
   renderBookLibrary() {
     const wrap = document.getElementById('bookLibrary');
     if (!wrap) return;
-    const books = Store.getBooks();
+    this.renderBookFilterBar();
+    let books = Store.getBooks();
+    const f = this.bookFilterTag || '全部';
+    if (f !== '全部') books = books.filter(b => (b.tags || []).includes(f));
     if (!books.length) {
-      wrap.innerHTML = '<p class="book-empty">书库还是空的，点「➕ 添加书目」录入孩子的书吧（带拼音也不怕，不用拍照）。</p>';
+      wrap.innerHTML = '<p class="book-empty">' + (f === '全部'
+        ? '书库还是空的，点「➕ 添加书目」录入孩子的书吧（带拼音也不怕，不用拍照）。也可「📷 扫码加书」或「📋 粘贴导入」。'
+        : '该分类下还没有书。') + '</p>';
       return;
     }
     wrap.innerHTML = books.map(b => {
       const d = (b.createdAt || '').slice(0, 10);
+      const tags = (b.tags || []).map(t => {
+        const c = BOOK_CATEGORIES.find(x => x.key === t);
+        return `<span class="book-tag">${c ? c.icon : '⭐'} ${esc(t)}</span>`;
+      }).join('');
+      const cover = b.cover ? `<img class="book-cover" src="${esc(b.cover)}" onerror="this.style.display='none'" alt="">` : '';
+      const srcBadge = b.source === 'scan' ? '<span class="book-src">扫码</span>'
+        : (b.source === 'clipboard' ? '<span class="book-src">导入</span>' : '');
       return `<div class="book-card" onclick="UI.selectBook('${b.id}')">
+        ${cover}
         <div class="book-card-main">
           <div class="book-card-title">${esc(b.title)}</div>
-          <div class="book-card-meta">${b.charCount}字 · ${d}</div>
+          <div class="book-card-meta">${b.charCount}字 · ${d} ${srcBadge}</div>
+          <div class="book-card-tags">${tags}</div>
         </div>
         <button class="book-del" title="删除" onclick="event.stopPropagation(); UI.deleteBook('${b.id}')">🗑</button>
       </div>`;
     }).join('');
   },
 
-  toggleAddBook() {
+  renderBookFilterBar() {
+    const bar = document.getElementById('bookFilterBar');
+    if (!bar) return;
+    const cats = ['全部', ...BOOK_CATEGORIES.map(c => c.key)];
+    const cur = this.bookFilterTag || '全部';
+    bar.innerHTML = cats.map(c => {
+      const label = c === '全部' ? '📚 全部' : (BOOK_CATEGORIES.find(x => x.key === c).icon + ' ' + c);
+      return `<button class="book-filter-chip${c === cur ? ' active' : ''}" onclick="UI.filterBookByCategory('${c}')">${label}</button>`;
+    }).join('');
+  },
+
+  filterBookByCategory(cat) {
+    this.bookFilterTag = cat;
+    this.renderBookLibrary();
+  },
+
+  toggleAddBook(forceShow) {
     const f = document.getElementById('addBookForm');
     if (!f) return;
-    f.style.display = (f.style.display === 'none' || !f.style.display) ? 'block' : 'none';
+    if (forceShow === true) { f.style.display = 'block'; this.renderTagPicker(); }
+    else if (forceShow === false) {
+      f.style.display = 'none';
+      this.newBookTags = new Set();
+      this.newBookMeta = null;
+      document.getElementById('newBookTitle').value = '';
+      document.getElementById('newBookText').value = '';
+    } else {
+      const show = (f.style.display === 'none' || !f.style.display);
+      f.style.display = show ? 'block' : 'none';
+      if (show) this.renderTagPicker();
+    }
+  },
+
+  renderTagPicker() {
+    const wrap = document.getElementById('bookTagPick');
+    if (!wrap) return;
+    if (!this.newBookTags) this.newBookTags = new Set();
+    wrap.innerHTML = '<span class="tag-pick-label">分类：</span>' + BOOK_CATEGORIES.map(c => {
+      const active = this.newBookTags.has(c.key) ? ' active' : '';
+      return `<button type="button" class="tag-chip${active}" onclick="UI.toggleBookTag('${c.key}', this)">${c.icon} ${c.key}</button>`;
+    }).join('');
+  },
+
+  toggleBookTag(key, el) {
+    if (!this.newBookTags) this.newBookTags = new Set();
+    if (this.newBookTags.has(key)) { this.newBookTags.delete(key); el.classList.remove('active'); }
+    else { this.newBookTags.add(key); el.classList.add('active'); }
   },
 
   saveNewBook() {
     const title = document.getElementById('newBookTitle').value.trim();
     const text = document.getElementById('newBookText').value.trim();
     if (!text) { alert('请先粘贴或输入课文内容！'); return; }
-    Store.addBook(title, text);
+    let tags = [...(this.newBookTags || new Set())];
+    if (!tags.length) tags = ['其他'];
+    const meta = this.newBookMeta || {};
+    Store.addBook(title, text, {
+      tags,
+      source: meta.source || 'manual',
+      isbn: meta.isbn || null,
+      url: meta.url || null,
+      cover: meta.cover || null,
+    });
     document.getElementById('newBookTitle').value = '';
     document.getElementById('newBookText').value = '';
     document.getElementById('addBookForm').style.display = 'none';
+    this.newBookTags = new Set();
+    this.newBookMeta = null;
     this.renderBookLibrary();
     alert('已存入书库，孩子以后直接选这本书朗读即可 📚');
   },
@@ -961,7 +1054,130 @@ const UI = {
     if (!book) return;
     this.currentText = book.text;
     this.currentTitle = book.title;
+    Store.data.lastBookId = id;
+    Store.save();
     this.startReading();
+  },
+
+  // ======== 扫码加书（相机扫描二维码/条形码） ========
+  ensureQrLib() {
+    return new Promise((resolve, reject) => {
+      if (window.Html5QrcodeScanner) return resolve();
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      s.onload = () => window.Html5QrcodeScanner ? resolve() : reject(new Error('库未就绪'));
+      s.onerror = () => reject(new Error('相机组件加载失败，请检查网络'));
+      document.head.appendChild(s);
+    });
+  },
+
+  async openScanner() {
+    const overlay = document.getElementById('qrOverlay');
+    const msg = document.getElementById('qrMsg');
+    const reader = document.getElementById('qrReader');
+    if (!overlay || !reader) return;
+    reader.innerHTML = '';
+    if (msg) msg.textContent = '';
+    overlay.style.display = 'flex';
+    try {
+      await this.ensureQrLib();
+    } catch (e) {
+      if (msg) msg.textContent = (e && e.message) ? e.message : '相机组件加载失败';
+      return;
+    }
+    try {
+      this._qrHandled = false;
+      this._qrScanner = new Html5QrcodeScanner('qrReader', { fps: 10, qrbox: 260, rememberLastUsedCamera: true }, false);
+      this._qrScanner.render((text) => this.onScanSuccess(text), () => {});
+    } catch (e) {
+      if (msg) msg.textContent = '无法启动相机：' + ((e && e.message) ? e.message : e);
+    }
+  },
+
+  onScanSuccess(text) {
+    if (this._qrHandled) return;
+    this._qrHandled = true;
+    this.closeScanner();
+    this.processScannedContent(text);
+  },
+
+  closeScanner() {
+    this._qrHandled = false;
+    if (this._qrScanner) {
+      try { this._qrScanner.clear(); } catch (e) {}
+      this._qrScanner = null;
+    }
+    const overlay = document.getElementById('qrOverlay');
+    if (overlay) overlay.style.display = 'none';
+  },
+
+  async processScannedContent(raw) {
+    const trimmed = (raw || '').trim();
+    let isbn = null, url = null, title = '', cover = null;
+    const digits = trimmed.replace(/[^0-9]/g, '');
+    const isbnMatch = trimmed.match(/(\d{13})/);
+    if ((/^(978|979)\d{10}$/.test(digits)) || (isbnMatch && /^9(78|79)/.test(isbnMatch[1]))) {
+      isbn = isbnMatch ? isbnMatch[1] : digits;
+      cover = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      try {
+        const res = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+        if (res.ok) {
+          const j = await res.json();
+          if (j && j.title) title = j.title;
+        }
+      } catch (e) {}
+    } else if (/^https?:\/\//i.test(trimmed)) {
+      url = trimmed;
+    } else {
+      title = trimmed.slice(0, 50);
+    }
+    document.getElementById('newBookTitle').value = title;
+    document.getElementById('newBookText').value = '';
+    this.newBookMeta = { isbn, url, cover, source: 'scan' };
+    this.toggleAddBook(true);
+    let note = '已扫描';
+    if (isbn) note += ` ISBN：${isbn}`;
+    else if (url) note += ' 到一个链接';
+    else note += ' 到内容';
+    note += '，请补全课文文字与分类后保存。';
+    if (!title) note += '\n（联网若查到书名会自动填入，否则请手动填写书名）';
+    note += '\n\n提示：书上的二维码通常只含书号/链接，不含正文。孩子要读的文字请粘贴或输入到下方文本框。';
+    alert(note);
+  },
+
+  // ======== 一键粘贴导入（微信读书/电子书） ========
+  async importFromClipboard() {
+    let text = '';
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        text = await navigator.clipboard.readText();
+      }
+    } catch (e) {}
+    const ta = document.getElementById('newBookText');
+    if (text && text.trim()) {
+      ta.value = text.trim();
+      this.newBookMeta = { source: 'clipboard' };
+      this.toggleAddBook(true);
+      alert(`已从剪贴板导入文字（${text.trim().length} 字）！\n请填写书名和分类后保存。\n\n用法：在微信读书里长按选中文字 → 复制，再回到这里点「📋 粘贴导入」即可一键带入。`);
+    } else {
+      this.toggleAddBook(true);
+      if (ta) ta.focus();
+      alert('未能自动读取剪贴板（手机可能未授权读取剪贴板）。\n请长按下方文本框，在菜单中选择「粘贴」即可导入。');
+    }
+  },
+
+  // ======== 首页快捷入口 ========
+  openBookLibrary() {
+    this.navigate('practice');
+    const lib = document.getElementById('bookLibrary');
+    if (lib) setTimeout(() => lib.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+  },
+
+  continueLastBook() {
+    const lastId = Store.data.lastBookId;
+    const book = lastId ? Store.getBooks().find(b => b.id === lastId) : null;
+    if (book) this.selectBook(book.id);
+    else this.navigate('practice');
   },
 
   // ======== 实时伴读高亮 ========
@@ -1387,6 +1603,18 @@ const UI = {
     this.updateNavPoints();
     this.renderAudioFiles();
     this.renderPetMini();
+
+    // 书库快捷入口
+    const bookCountSub = document.getElementById('bookCountSub');
+    if (bookCountSub) bookCountSub.textContent = Store.getBooks().length + ' 本书';
+    const contCard = document.getElementById('continueReadCard');
+    const contSub = document.getElementById('continueBookSub');
+    if (contCard && contSub) {
+      const lastBook = Store.data.lastBookId
+        ? Store.getBooks().find(b => b.id === Store.data.lastBookId) : null;
+      if (lastBook) { contCard.style.display = 'flex'; contSub.textContent = lastBook.title; }
+      else contCard.style.display = 'none';
+    }
   },
 
   renderPetMini() {
