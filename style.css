@@ -1393,12 +1393,14 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--p
   .hero-actions button { width: 100%; }
   .hw-form-row { flex-direction: column; }
 
-  /* 作业栏在小屏幕下改为上下布局 */
-  .hw-layout { flex-direction: column; }
-  .hw-sidebar { width: 100%; flex-direction: column; gap: 8px; }
-  .hw-subject-header { width: 100%; }
-  .hw-subject-list { flex-direction: row; flex-wrap: wrap; gap: 4px; }
-  .hw-subject-item { flex: 1; min-width: 70px; justify-content: center; }
+  /* 作业栏在小屏幕下：左侧竖列科目导航 + 右侧内容 */
+  .hw-layout { flex-direction: row; align-items: flex-start; }
+  .hw-sidebar { width: 84px; flex-direction: column; gap: 8px; }
+  .hw-subject-header { font-size: 11px; text-align: center; padding: 0 2px 6px; }
+  .hw-subject-list { flex-direction: column; gap: 4px; padding: 4px; }
+  .hw-subject-item { flex-direction: column; gap: 2px; padding: 8px 2px; font-size: 11px; justify-content: center; text-align: center; }
+  .hw-subject-icon { font-size: 18px; }
+  .hw-subject-name { flex: none; line-height: 1.15; }
   .pet-emoji-big { font-size: 72px; }
   .nav-points-group { flex-direction: column; gap: 2px; }
   .nav-points { font-size: 12px; padding: 2px 8px; }
