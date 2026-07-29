@@ -1436,3 +1436,59 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--p
   .nav-points-group { flex-direction: column; gap: 2px; }
   .nav-points { font-size: 12px; padding: 2px 8px; }
 }
+
+/* ===== 首页快捷入口 ===== */
+.quick-entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.quick-entry-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: linear-gradient(135deg, #fff, #f3f6ff);
+  border: 1px solid #e2e8f5; border-radius: 16px; padding: 18px 12px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(102,126,234,0.10); transition: transform .15s ease, box-shadow .15s ease;
+}
+.quick-entry-card:active { transform: scale(.97); }
+.quick-entry-card.continue { background: linear-gradient(135deg, #fff7ed, #ffe9cf); border-color: #ffd9a8; }
+.quick-entry-icon { font-size: 30px; }
+.quick-entry-text { font-size: 15px; font-weight: 700; color: #2d3142; }
+.quick-entry-sub { font-size: 12px; color: #7a8194; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== 书库：操作按钮 + 分类筛选 + 标签 ===== */
+.book-library-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.book-filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.book-filter-chip {
+  border: 1px solid #d8def0; background: #fff; color: #5b6478; border-radius: 999px;
+  padding: 5px 11px; font-size: 12px; cursor: pointer; transition: all .15s ease;
+}
+.book-filter-chip.active { background: #667eea; border-color: #667eea; color: #fff; font-weight: 700; }
+
+.book-tag-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 6px; }
+.tag-pick-label { font-size: 13px; color: #5b6478; }
+.tag-chip {
+  border: 1px solid #d8def0; background: #fff; color: #5b6478; border-radius: 999px;
+  padding: 5px 10px; font-size: 12px; cursor: pointer; transition: all .15s ease;
+}
+.tag-chip.active { background: #eef2ff; border-color: #667eea; color: #4a55d6; font-weight: 700; }
+
+.book-card { display: flex; align-items: stretch; gap: 10px; background: #fff; border: 1px solid #e6eaf5; border-radius: 14px; padding: 10px; margin-bottom: 10px; cursor: pointer; }
+.book-cover { width: 46px; height: 60px; object-fit: cover; border-radius: 6px; flex: none; background: #eef; }
+.book-card-main { flex: 1; min-width: 0; }
+.book-card-title { font-size: 15px; font-weight: 700; color: #2d3142; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-card-meta { font-size: 12px; color: #8a90a2; margin-top: 2px; }
+.book-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.book-tag {
+  font-size: 11px; color: #4a55d6; background: #eef2ff; border-radius: 999px; padding: 2px 8px; line-height: 1.6;
+}
+.book-src { font-size: 11px; color: #c2770d; background: #fff3e0; border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
+.book-del { align-self: center; border: none; background: #fff0f0; color: #e25b5b; border-radius: 8px; padding: 6px 8px; font-size: 14px; cursor: pointer; flex: none; }
+
+/* ===== 扫码加书 扫描层 ===== */
+.qr-overlay {
+  position: fixed; inset: 0; z-index: 2000; background: rgba(20,24,40,0.92);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.qr-overlay-inner { width: 100%; max-width: 480px; background: #fff; border-radius: 16px; padding: 16px; max-height: 92vh; overflow-y: auto; }
+.qr-overlay-head { display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 700; color: #2d3142; margin-bottom: 8px; }
+.qr-close { border: none; background: #f0f2f8; color: #555; border-radius: 50%; width: 30px; height: 30px; font-size: 16px; cursor: pointer; }
+.qr-tip { font-size: 13px; color: #7a8194; margin: 0 0 10px; }
+.qr-msg { font-size: 13px; color: #c0392b; margin-top: 10px; min-height: 18px; }
+#qrReader > div { border-radius: 12px; overflow: hidden; }
+#qrReader video { border-radius: 12px; }
