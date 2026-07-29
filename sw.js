@@ -1,5 +1,5 @@
 // 勤学小书仔 Service Worker
-const CACHE_NAME = 'qinxue-v1';
+const CACHE_NAME = 'qinxue-v2';
 const CORE_FILES = [
   './',
   './index.html',
