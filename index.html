@@ -205,10 +205,13 @@
           <div class="book-library-actions">
             <button class="btn-small" onclick="UI.openScanner()">📷 扫码加书</button>
             <button class="btn-small" onclick="UI.importFromClipboard()">📋 粘贴导入</button>
+            <button class="btn-small" onclick="UI.openEbookUpload()">📤 上传电子书</button>
             <button class="btn-small" onclick="UI.toggleAddBook()">➕ 添加书目</button>
           </div>
         </div>
+        <input type="file" id="ebookInput" accept=".txt,.epub,text/plain,application/epub+zip" style="display:none" onchange="UI.handleEbookFile(this.files[0], this)">
         <div class="book-filter-bar" id="bookFilterBar"></div>
+        <div class="ebook-msg" id="ebookMsg"></div>
         <div class="book-list" id="bookLibrary"></div>
         <div class="add-book-form" id="addBookForm" style="display:none;">
           <input type="text" id="newBookTitle" placeholder="书名（如：小猪唏哩呼噜）" maxlength="50">
@@ -219,7 +222,7 @@
             <button class="btn-primary" onclick="UI.saveNewBook()">保存书目</button>
           </div>
         </div>
-        <p class="book-tip">💡 适合带拼音的课本：一次录入，孩子每天直接选书朗读，告别逐页拍照。也可「扫码加书」扫书号，或「粘贴导入」从微信读书一键带入。</p>
+        <p class="book-tip">💡 适合带拼音的课本：一次录入，孩子每天直接选书朗读，告别逐页拍照。也可「扫码加书」扫书号、「粘贴导入」从微信读书带入，或直接「📤 上传电子书」(.txt/.epub)。</p>
       </div>
 
       <div class="divider"><span>或者拍照 / 手动输入</span></div>
