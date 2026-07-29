@@ -114,10 +114,23 @@
     <div class="install-help-card" id="installHelpCard">
       <div class="install-help-icon">📲</div>
       <div class="install-help-text">
-        <strong>想把它装到手机桌面？</strong>
-        <span>点此查看你的手机该怎么安装成 APP（真正全屏图标）</span>
+        <strong>想把它装成手机 APP？</strong>
+        <span>⚠️ 用 <b>Edge</b> 只能加到主屏幕的「快捷方式」（带浏览器栏），不是独立 APP。请用下方方法之一。</span>
       </div>
-      <button class="install-help-btn" id="installHelpBtn" onclick="UI.showInstallHelp()">安装</button>
+      <button class="install-help-btn" id="installHelpBtn" onclick="UI.showInstallHelp()">怎么装</button>
+    </div>
+
+    <!-- 华为手机安装方案 -->
+    <div class="install-apk-card">
+      <div class="install-help-text">
+        <strong>华为手机装成真 APP 的 3 种方法（任选其一）</strong>
+        <ol class="install-steps">
+          <li><b>方法1（最简单）：用「华为浏览器」</b>打开本链接 → 点右下角「⋮」菜单 → <b>「添加到主屏幕」</b>。华为浏览器会把它做成全屏独立窗口（无地址栏），就是 APP。</li>
+          <li><b>方法2：用 Chrome</b>打开本链接 → 点「⋮」菜单 → <b>「安装应用」</b>。会生成真正的独立 APP 图标（需先从应用市场装 Chrome）。</li>
+          <li><b>方法3（最彻底·真安装包）：生成 APK</b>点下面按钮，用微软免费工具 PWABuilder 一键生成安卓安装包，下载装到手机就是货真价实的 APP，不受任何浏览器限制。</li>
+        </ol>
+        <a class="install-apk-link" href="https://www.pwabuilder.com/?url=https://gaoxing-fei.github.io/qinxue-xiaoshuzai/" target="_blank" rel="noopener">➡️ 打开 PWABuilder 生成安卓安装包(APK)</a>
+      </div>
     </div>
 
     <div class="stats-grid">
