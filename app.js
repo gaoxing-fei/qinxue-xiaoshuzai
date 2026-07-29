@@ -704,6 +704,9 @@ const Pet = {
 // ============================================
 // 10. UI 管理
 // ============================================
+// 全局安装/PWA 状态（供 init 与安装事件共用）
+const AppState = { isStandalone: false, deferredPrompt: null };
+
 const UI = {
   // 朗读相关状态
   currentImageFile: null,
