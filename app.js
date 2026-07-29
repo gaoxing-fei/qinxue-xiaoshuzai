@@ -748,6 +748,26 @@ const UI = {
       }
     }
 
+    // iOS 非 Safari（Edge/Chrome on iPhone）无法安装 PWA，引导改用 Safari
+    const uaStr = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(uaStr) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /Safari/.test(uaStr) && !/Chrome|CriOS|Edg|OPR|Firefox|FxiOS/.test(uaStr);
+    AppState.isIOS = isIOS;
+    AppState.isSafari = isSafari;
+    if (isIOS && !isSafari && !isStandalone) {
+      const iosTip = document.getElementById('iosTip');
+      if (iosTip) {
+        iosTip.style.display = 'block';
+        const c = document.getElementById('iosTipClose');
+        if (c) c.addEventListener('click', () => { iosTip.style.display = 'none'; });
+      }
+    }
+    // 已以 APP 形式运行时，隐藏首页安装引导卡片
+    if (isStandalone) {
+      const ihc = document.getElementById('installHelpCard');
+      if (ihc) ihc.style.display = 'none';
+    }
+
     // 捕获浏览器的"可安装"事件，弹出添加到主屏幕引导条
     window.addEventListener('beforeinstallprompt', (e) => {
       if (isStandalone) return;
@@ -790,6 +810,26 @@ const UI = {
       photoInput.click();
     });
     photoInput.addEventListener('change', (e) => this.handlePhotoUpload(e));
+  },
+
+  showInstallHelp() {
+    // 若浏览器已提供原生安装入口，直接触发
+    if (AppState.deferredPrompt) {
+      try { AppState.deferredPrompt.prompt(); } catch (e) {}
+      AppState.deferredPrompt = null;
+      const bar = document.getElementById('installBar');
+      if (bar) bar.style.display = 'none';
+      return;
+    }
+    let msg;
+    if (AppState.isIOS && !AppState.isSafari) {
+      msg = '🍎 iPhone 上只有「Safari 浏览器」能把网页装成 APP。\n\n请这样操作：\n1. 复制本页网址\n2. 打开 Safari 粘贴并打开\n3. 点底部「分享」⬆️ →「添加到主屏幕」\n\n（Edge / Chrome 在 iPhone 上只能加书签，无法安装成 APP）';
+    } else if (AppState.isIOS) {
+      msg = '🍎 安装方法：\n点 Safari 底部「分享」⬆️ →「添加到主屏幕」即可。';
+    } else {
+      msg = '🤖 安装方法：\n点浏览器右上角「⋮」菜单 →「安装应用」或「添加到主屏幕」。\n\n如果没看到该选项，请刷新页面，或在页面底部出现的安装条上点「安装」。';
+    }
+    alert(msg);
   },
 
   navigate(viewName) {
