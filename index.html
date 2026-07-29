@@ -32,7 +32,7 @@
     <span class="wechat-tip-icon">📲</span>
     <div class="wechat-tip-text">
       <strong>请点右上角 ⋯ 用浏览器打开</strong>
-      <p>微信里不能直接把网页装成 APP。点右上角「⋯」→「在浏览器打开」（iPhone 选「在 Safari 中打开」），就能把本应用添加到手机桌面，像普通 APP 一样使用，语音朗读也才正常。</p>
+      <p>微信里无法使用语音朗读。请点右上角「⋯」→「在浏览器打开」（选华为浏览器或 Edge），朗读、录音等功能才能正常使用。</p>
     </div>
     <button id="wechatTipClose" class="wechat-tip-close">知道了</button>
   </div>
@@ -48,17 +48,6 @@
     </div>
     <button id="iosTipClose" class="wechat-tip-close">知道了</button>
   </div>
-</div>
-
-<!-- 添加到主屏幕引导条 -->
-<div id="installBar" class="install-bar" style="display:none;">
-  <span class="install-bar-icon">➕</span>
-  <div class="install-bar-text">
-    <strong>添加到手机桌面</strong>
-    <span>点此把它变成桌面的 APP 图标，打开即用</span>
-  </div>
-  <button id="installBtn" class="install-bar-btn">安装</button>
-  <button id="installClose" class="install-bar-close">✕</button>
 </div>
 
 <!-- 顶部导航栏 -->
@@ -107,29 +96,6 @@
       <div class="hero-actions">
         <button class="btn-primary btn-large btn-pulse" onclick="UI.navigate('practice')">🎤 开始朗读</button>
         <button class="btn-secondary btn-large" onclick="UI.navigate('homework')">📝 去做作业</button>
-      </div>
-    </div>
-
-    <!-- 安装到桌面引导卡片 -->
-    <div class="install-help-card" id="installHelpCard">
-      <div class="install-help-icon">📲</div>
-      <div class="install-help-text">
-        <strong>想把它装成手机 APP？</strong>
-        <span>⚠️ 用 <b>Edge</b> 只能加到主屏幕的「快捷方式」（带浏览器栏），不是独立 APP。请用下方方法之一。</span>
-      </div>
-      <button class="install-help-btn" id="installHelpBtn" onclick="UI.showInstallHelp()">怎么装</button>
-    </div>
-
-    <!-- 华为手机安装方案 -->
-    <div class="install-apk-card">
-      <div class="install-help-text">
-        <strong>华为手机装成真 APP（实测 Edge、华为浏览器都只能加到主屏幕的快捷方式）</strong>
-        <ol class="install-steps">
-          <li><b>方法1（最彻底·推荐）：生成 APK 安装包</b>点下面绿色按钮，用微软免费工具 PWABuilder 一键生成安卓安装包，下载装到手机就是<b>货真价实的 APP</b>（有独立图标、独立运行），不受任何浏览器限制。这是华为手机上唯一保证成功的方案。</li>
-          <li><b>方法2：用 Chrome 试「安装应用」</b>打开本链接 → 点「⋮」→「安装应用」。部分华为机型可生成独立 APP（需先从应用市场装 Chrome）。</li>
-          <li><b>方法3：华为浏览器「添加到主屏幕」</b>会做成全屏窗口，但<b>部分华为机型仍显示带栏快捷方式</b>，若不满意请用方法1。</li>
-        </ol>
-        <a class="install-apk-link" href="https://www.pwabuilder.com/?url=https://gaoxing-fei.github.io/qinxue-xiaoshuzai/" target="_blank" rel="noopener">➡️ 打开 PWABuilder 生成安卓安装包(APK)</a>
       </div>
     </div>
 
