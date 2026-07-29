@@ -178,8 +178,28 @@
 
     <!-- Step 1: 拍照/上传识别阅读内容 -->
     <div id="step-select" class="practice-step active">
-      <h2 class="step-title">第一步：拍照上传阅读内容</h2>
-      <p class="step-hint">💡 拍一张今天要读的书的照片，系统会自动识别文字内容</p>
+      <h2 class="step-title">第一步：选择要读的内容</h2>
+      <p class="step-hint">💡 带拼音的书直接「从书库选」（推荐，不用拍照）；也可拍照或手动输入。</p>
+
+      <!-- 书库 -->
+      <div class="book-library">
+        <div class="book-library-head">
+          <span>📚 我的书库</span>
+          <button class="btn-small" onclick="UI.toggleAddBook()">➕ 添加书目</button>
+        </div>
+        <div class="book-list" id="bookLibrary"></div>
+        <div class="add-book-form" id="addBookForm" style="display:none;">
+          <input type="text" id="newBookTitle" placeholder="书名（如：小猪唏哩呼噜）" maxlength="50">
+          <textarea id="newBookText" rows="6" placeholder="把要读的课文粘贴/输入到这里（带拼音也不怕，不用拍照）"></textarea>
+          <div class="step-buttons">
+            <button class="btn-secondary" onclick="UI.toggleAddBook()">取消</button>
+            <button class="btn-primary" onclick="UI.saveNewBook()">保存书目</button>
+          </div>
+        </div>
+        <p class="book-tip">💡 适合带拼音的课本：一次录入，孩子每天直接选书朗读，告别逐页拍照。</p>
+      </div>
+
+      <div class="divider"><span>或者拍照 / 手动输入</span></div>
 
       <!-- 拍照上传区域 -->
       <div class="upload-section">
@@ -247,6 +267,11 @@
         </div>
       </div>
 
+      <div class="companion-bar" id="companionBar" style="display:none;">
+        <span class="companion-text" id="companionText">已读 0 / 0 字</span>
+        <div class="companion-track"><div class="companion-fill" id="companionFill"></div></div>
+      </div>
+
       <div class="reading-text-display" id="readingTextDisplay"></div>
 
       <!-- 录音状态指示 -->
@@ -275,7 +300,7 @@
       <p class="step-hint">💡 语音识别可能不完美，请核对并修改下面识别到的文字，确保和实际朗读一致：</p>
       <textarea id="recognizedTextEditor" rows="6" placeholder="识别到的文字..."></textarea>
       <div class="step-buttons">
-        <button class="btn-secondary" onclick="UI.goToStep('read')">↩ 重新朗读</button>
+        <button class="btn-secondary" onclick="UI.startReading()">↩ 重新朗读</button>
         <button class="btn-primary" onclick="UI.runComparison()">对比分析 →</button>
       </div>
     </div>
