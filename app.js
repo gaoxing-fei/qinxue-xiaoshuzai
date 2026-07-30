@@ -406,8 +406,14 @@ const Speech = {
 
   init() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { this.isSupported = false; return false; }
+    if (!SR) { this.isSupported = false; this.unsupportedReason = '当前浏览器不支持语音识别，请使用 Chrome / Edge / 手机 Chrome'; return false; }
+    if (typeof window.isSecureContext !== 'undefined' && window.isSecureContext === false) {
+      this.isSupported = false;
+      this.unsupportedReason = '麦克风/语音需在 HTTPS 或 localhost 安全环境下使用，请通过线上地址打开';
+      return false;
+    }
     this.isSupported = true;
+    this.unsupportedReason = '';
     this.recognition = new SR();
     this.recognition.lang = 'zh-CN';
     this.recognition.continuous = true;
@@ -437,8 +443,8 @@ const Speech = {
         if (this.isRecognizing) {
           setTimeout(() => { try { this.recognition.start(); } catch(e) {} }, 500);
         }
-      } else if (event.error === 'not-allowed') {
-        alert('请允许麦克风访问权限，才能使用语音识别功能。');
+      } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        alert('⚠️ 麦克风权限被拒绝或未授权。\n请在浏览器地址栏点击「🎤」图标允许麦克风，并通过 https 地址打开后重试。');
         this.isRecognizing = false;
         this.stopTimer();
       }
@@ -946,7 +952,7 @@ const UI = {
     if (f !== '全部') books = books.filter(b => (b.tags || []).includes(f));
     if (!books.length) {
       wrap.innerHTML = '<p class="book-empty">' + (f === '全部'
-        ? '书库还是空的，点「➕ 添加书目」录入孩子的书吧（带拼音也不怕，不用拍照）。也可「📷 扫码加书」或「📋 粘贴导入」。'
+        ? '书库还是空的，点「➕ 添加书目」录入孩子的书吧（带拼音也不怕，不用拍照）。也可用「📋 粘贴导入」或「📤 上传电子书」。'
         : '该分类下还没有书。') + '</p>';
       return;
     }
@@ -957,8 +963,8 @@ const UI = {
         return `<span class="book-tag">${c ? c.icon : '⭐'} ${esc(t)}</span>`;
       }).join('');
       const cover = b.cover ? `<img class="book-cover" src="${esc(b.cover)}" onerror="this.style.display='none'" alt="">` : '';
-      const srcBadge = b.source === 'scan' ? '<span class="book-src">扫码</span>'
-        : (b.source === 'clipboard' ? '<span class="book-src">导入</span>' : '');
+      const srcBadge = b.source === 'clipboard' ? '<span class="book-src">导入</span>'
+        : (b.source === 'upload' ? '<span class="book-src">电子书</span>' : '');
       return `<div class="book-card" onclick="UI.selectBook('${b.id}')">
         ${cover}
         <div class="book-card-main">
@@ -1057,92 +1063,6 @@ const UI = {
     Store.data.lastBookId = id;
     Store.save();
     this.startReading();
-  },
-
-  // ======== 扫码加书（相机扫描二维码/条形码） ========
-  ensureQrLib() {
-    return new Promise((resolve, reject) => {
-      if (window.Html5QrcodeScanner) return resolve();
-      const s = document.createElement('script');
-      s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-      s.onload = () => window.Html5QrcodeScanner ? resolve() : reject(new Error('库未就绪'));
-      s.onerror = () => reject(new Error('相机组件加载失败，请检查网络'));
-      document.head.appendChild(s);
-    });
-  },
-
-  async openScanner() {
-    const overlay = document.getElementById('qrOverlay');
-    const msg = document.getElementById('qrMsg');
-    const reader = document.getElementById('qrReader');
-    if (!overlay || !reader) return;
-    reader.innerHTML = '';
-    if (msg) msg.textContent = '';
-    overlay.style.display = 'flex';
-    try {
-      await this.ensureQrLib();
-    } catch (e) {
-      if (msg) msg.textContent = (e && e.message) ? e.message : '相机组件加载失败';
-      return;
-    }
-    try {
-      this._qrHandled = false;
-      this._qrScanner = new Html5QrcodeScanner('qrReader', { fps: 10, qrbox: 260, rememberLastUsedCamera: true }, false);
-      this._qrScanner.render((text) => this.onScanSuccess(text), () => {});
-    } catch (e) {
-      if (msg) msg.textContent = '无法启动相机：' + ((e && e.message) ? e.message : e);
-    }
-  },
-
-  onScanSuccess(text) {
-    if (this._qrHandled) return;
-    this._qrHandled = true;
-    this.closeScanner();
-    this.processScannedContent(text);
-  },
-
-  closeScanner() {
-    this._qrHandled = false;
-    if (this._qrScanner) {
-      try { this._qrScanner.clear(); } catch (e) {}
-      this._qrScanner = null;
-    }
-    const overlay = document.getElementById('qrOverlay');
-    if (overlay) overlay.style.display = 'none';
-  },
-
-  async processScannedContent(raw) {
-    const trimmed = (raw || '').trim();
-    let isbn = null, url = null, title = '', cover = null;
-    const digits = trimmed.replace(/[^0-9]/g, '');
-    const isbnMatch = trimmed.match(/(\d{13})/);
-    if ((/^(978|979)\d{10}$/.test(digits)) || (isbnMatch && /^9(78|79)/.test(isbnMatch[1]))) {
-      isbn = isbnMatch ? isbnMatch[1] : digits;
-      cover = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
-      try {
-        const res = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
-        if (res.ok) {
-          const j = await res.json();
-          if (j && j.title) title = j.title;
-        }
-      } catch (e) {}
-    } else if (/^https?:\/\//i.test(trimmed)) {
-      url = trimmed;
-    } else {
-      title = trimmed.slice(0, 50);
-    }
-    document.getElementById('newBookTitle').value = title;
-    document.getElementById('newBookText').value = '';
-    this.newBookMeta = { isbn, url, cover, source: 'scan' };
-    this.toggleAddBook(true);
-    let note = '已扫描';
-    if (isbn) note += ` ISBN：${isbn}`;
-    else if (url) note += ' 到一个链接';
-    else note += ' 到内容';
-    note += '，请补全课文文字与分类后保存。';
-    if (!title) note += '\n（联网若查到书名会自动填入，否则请手动填写书名）';
-    note += '\n\n提示：书上的二维码通常只含书号/链接，不含正文。孩子要读的文字请粘贴或输入到下方文本框。';
-    alert(note);
   },
 
   // ======== 一键粘贴导入（微信读书/电子书） ========
@@ -1341,9 +1261,9 @@ const UI = {
 
     this.hasAudio = false;
     const recStarted = await Recorder.start();
-    if (!recStarted) { console.warn('录音启动失败，仅使用语音识别'); }
+    if (!recStarted) console.warn('录音启动失败');
 
-    Speech.start(
+    const speechStarted = Speech.start(
       (result) => {
         const live = document.getElementById('recognitionLive');
         if (result) live.innerHTML = `<span style="color:var(--text)">${esc(result)}</span>`;
@@ -1351,6 +1271,14 @@ const UI = {
       },
       null
     );
+
+    if (!speechStarted && !recStarted) {
+      alert('⚠️ 麦克风/语音功能均不可用：' + (Speech.unsupportedReason || '当前环境不支持') + '\n\n请通过线上 https 地址在 Chrome / Edge / 手机 Chrome 中打开，并允许麦克风权限。\n（本地测试请用 localhost，不要用 file:// 或直接 http://IP）\n\n仍可正常朗读，但本次无逐字高亮与录音回放。');
+    } else if (!speechStarted) {
+      alert('⚠️ 语音识别未能启动，无法实时高亮。仍可朗读，请检查麦克风权限或改用 Chrome / Edge。');
+    } else if (!recStarted) {
+      console.warn('仅语音识别模式（无录音回放）');
+    }
   },
 
   async stopReading() {
