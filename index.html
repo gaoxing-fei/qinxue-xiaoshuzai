@@ -203,7 +203,6 @@
         <div class="book-library-head">
           <span>📚 我的书库</span>
           <div class="book-library-actions">
-            <button class="btn-small" onclick="UI.openScanner()">📷 扫码加书</button>
             <button class="btn-small" onclick="UI.importFromClipboard()">📋 粘贴导入</button>
             <button class="btn-small" onclick="UI.openEbookUpload()">📤 上传电子书</button>
             <button class="btn-small" onclick="UI.toggleAddBook()">➕ 添加书目</button>
@@ -222,7 +221,7 @@
             <button class="btn-primary" onclick="UI.saveNewBook()">保存书目</button>
           </div>
         </div>
-        <p class="book-tip">💡 适合带拼音的课本：一次录入，孩子每天直接选书朗读，告别逐页拍照。也可「扫码加书」扫书号、「粘贴导入」从微信读书带入，或直接「📤 上传电子书」(.txt/.epub)。</p>
+        <p class="book-tip">💡 适合带拼音的课本：一次录入，孩子每天直接选书朗读，告别逐页拍照。可「📋 粘贴导入」从微信读书带入，或直接「📤 上传电子书」(.txt/.epub)。</p>
       </div>
 
       <div class="divider"><span>或者拍照 / 手动输入</span></div>
@@ -687,19 +686,6 @@
 <!-- 宠物互动结果弹窗 -->
 <div class="modal-overlay" id="petModal" style="display:none;" onclick="UI.closePetModal(event)">
   <div class="modal-content pet-modal-content" id="petModalContent">
-  </div>
-</div>
-
-<!-- 扫码加书 扫描层 -->
-<div class="qr-overlay" id="qrOverlay" style="display:none;">
-  <div class="qr-overlay-inner">
-    <div class="qr-overlay-head">
-      <span>📷 扫描书上的二维码 / 条形码</span>
-      <button class="qr-close" onclick="UI.closeScanner()">✕</button>
-    </div>
-    <p class="qr-tip">把书后的二维码或条形码对准取景框，自动识别（首次使用需联网加载相机）。</p>
-    <div id="qrReader"></div>
-    <div id="qrMsg" class="qr-msg"></div>
   </div>
 </div>
 
